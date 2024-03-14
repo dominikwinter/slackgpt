@@ -79,7 +79,7 @@ func (c *Client) StartThread(text, channel, threadTs, aiThreadId string) (res *I
 			"blocks":    blocks,
 		}).
 		SetSuccessResult(&res).
-		Post("/chat.postMessage")
+		Post("/api/chat.postMessage")
 	return
 }
 
@@ -92,7 +92,7 @@ func (c *Client) AddToThread(text, channel, threadTs string) (res *I, err error)
 			"text":      text,
 		}).
 		SetSuccessResult(&res).
-		Post("/chat.postMessage")
+		Post("/api/chat.postMessage")
 	return
 }
 
@@ -106,7 +106,7 @@ func (c *Client) GetHistory(channel, threadTs string, limit int) (res *History, 
 			"oldest":  threadTs,
 		}).
 		SetSuccessResult(&res).
-		Get("/conversations.replies")
+		Get("/api/conversations.replies")
 	return
 }
 
@@ -119,7 +119,7 @@ func (c *Client) AddReactions(channel, name, timestamp string) (res *I, err erro
 			"timestamp": timestamp,
 		}).
 		SetSuccessResult(&res).
-		Post("/reactions.add")
+		Post("/api/reactions.add")
 	return
 }
 
@@ -132,6 +132,6 @@ func (c *Client) DelReactions(channel, name, timestamp string) (res *I, err erro
 			"timestamp": timestamp,
 		}).
 		SetSuccessResult(&res).
-		Post("/reactions.remove")
+		Post("/api/reactions.remove")
 	return
 }

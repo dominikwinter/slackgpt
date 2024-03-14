@@ -40,6 +40,21 @@ type Thread struct {
 	Id string `json:"id"`
 }
 
+// https://platform.openai.com/docs/api-reference/files/object
+type File struct {
+	Id        string `json:"id"`
+	Object    string `json:"object"`
+	Bytes     int    `json:"bytes"`
+	CreatedAt int    `json:"created_at"`
+	Filename  string `json:"filename"`
+	Purpose   string `json:"purpose"`
+}
+
+// https://platform.openai.com/docs/api-reference/assistants/object
+type Assistant struct {
+	Id string `json:"id"`
+}
+
 type Client struct {
 	Client *req.Client
 }
@@ -62,8 +77,6 @@ func New(url, token, organization string) *Client {
 			// EnableDumpAll().
 			SetBaseURL(url).
 			SetUserAgent("github.com/dominikwinter/slackgpt").
-			SetCommonHeader("Accept", "application/json").
-			SetCommonHeader("Content-Type", "application/json").
 			SetCommonHeader("OpenAI-Organization", organization).
 			SetCommonHeader("OpenAI-Beta", "assistants=v1").
 			SetCommonBearerAuthToken(token).
@@ -77,8 +90,10 @@ func New(url, token, organization string) *Client {
 // https://platform.openai.com/docs/api-reference/threads/createThread
 func (c *Client) CreateThread() (res *Thread, err error) {
 	_, err = c.Client.R().
+		SetHeader("Accept", "application/json").
+		SetHeader("Content-Type", "application/json").
 		SetSuccessResult(&res).
-		Post("/threads")
+		Post("/v1/threads")
 	return
 }
 
@@ -86,10 +101,12 @@ func (c *Client) CreateThread() (res *Thread, err error) {
 // https://platform.openai.com/docs/api-reference/messages/createMessage
 func (c *Client) CreateMessage(threadId, content string) (res *Message, err error) {
 	_, err = c.Client.R().
-		SetBody(I{"role": "user", "content": content}).
+		SetHeader("Accept", "application/json").
+		SetHeader("Content-Type", "application/json").
+		SetBody(S{"role": "user", "content": content}).
 		SetSuccessResult(&res).
 		SetPathParam("threadId", threadId).
-		Post("/threads/{threadId}/messages")
+		Post("/v1/threads/{threadId}/messages")
 	return
 }
 
@@ -97,10 +114,11 @@ func (c *Client) CreateMessage(threadId, content string) (res *Message, err erro
 // https://platform.openai.com/docs/api-reference/messages/listMessages
 func (c *Client) ListMessages(threadId, messageIId string) (res *Messages, err error) {
 	_, err = c.Client.R().
+		SetHeader("Accept", "application/json").
 		SetSuccessResult(&res).
 		SetQueryParams(S{"before": messageIId}).
 		SetPathParam("threadId", threadId).
-		Get("/threads/{threadId}/messages")
+		Get("/v1/threads/{threadId}/messages")
 	return
 }
 
@@ -108,10 +126,12 @@ func (c *Client) ListMessages(threadId, messageIId string) (res *Messages, err e
 // https://platform.openai.com/docs/api-reference/runs/createRun
 func (c *Client) CreateRun(threadId string) (res *Run, err error) {
 	_, err = c.Client.R().
-		SetBody(I{"assistant_id": os.Getenv("OPENAI_ASSISTANTS_ID")}).
+		SetHeader("Accept", "application/json").
+		SetHeader("Content-Type", "application/json").
+		SetBody(S{"assistant_id": os.Getenv("OPENAI_ASSISTANTS_ID")}).
 		SetSuccessResult(&res).
 		SetPathParam("threadId", threadId).
-		Post("/threads/{threadId}/runs")
+		Post("/v1/threads/{threadId}/runs")
 	return
 }
 
@@ -120,6 +140,7 @@ func (c *Client) CreateRun(threadId string) (res *Run, err error) {
 // status: queued, in_progress, requires_action, cancelling, cancelled, failed, completed, expired
 func (c *Client) WaitForRunCompleted(threadId, runId string) (res *Run, err error) {
 	_, err = c.Client.R().
+		SetHeader("Accept", "application/json").
 		SetSuccessResult(&res).
 		SetPathParam("threadId", threadId).
 		SetPathParam("runId", runId).
@@ -143,7 +164,7 @@ func (c *Client) WaitForRunCompleted(threadId, runId string) (res *Run, err erro
 				return false
 			}
 		}).
-		Get("/threads/{threadId}/runs/{runId}")
+		Get("/v1/threads/{threadId}/runs/{runId}")
 
 	if res.Status != "completed" {
 		return nil, fmt.Errorf("failed to wait for run completed: %s", res.Status)
@@ -188,4 +209,34 @@ func (c *Client) SendMessageAndWaitForAnswer(threadId, content string) (string, 
 	sort.Slice(answers, func(i, j int) bool { return true })
 
 	return strings.Join(answers, "\n\n"), nil
+}
+
+// Upload file
+// https://platform.openai.com/docs/api-reference/files/create
+func (c *Client) UploadFile(paramName, filePath string) (res *File, err error) {
+	_, err = c.Client.R().
+		SetHeader("Accept", "application/json").
+		SetFile(paramName, filePath).
+		SetSuccessResult(&res).
+		SetFormData(S{"purpose": "assistants"}).
+		Post("/v1/files")
+	return
+}
+
+// Create assistant
+// https://platform.openai.com/docs/api-reference/assistants/createAssistant
+func (c *Client) CreateAssistant(name, instructions, model, toolType string, fileIds []string) (res *Assistant, err error) {
+	_, err = c.Client.R().
+		SetHeader("Accept", "application/json").
+		SetHeader("Content-Type", "application/json").
+		SetBody(I{
+			"name":         name,
+			"instructions": instructions,
+			"model":        "gpt-4",
+			"tools":        []string{toolType},
+			"file_ids":     fileIds,
+		}).
+		SetSuccessResult(&res).
+		Post("/v1/assistants")
+	return
 }
