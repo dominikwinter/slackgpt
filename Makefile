@@ -26,6 +26,11 @@ clean: ## Clean up
 	rm -rf ./bin/*
 	go mod tidy
 
+.PHONY: update
+update: ## Update all dependencies
+	go get -u
+	go mod tidy
+
 .PHONY: release
 release: ## Build release binaries
 	mkdir -p bin

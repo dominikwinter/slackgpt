@@ -3,8 +3,8 @@ module github.com/dominikwinter/slackgpt
 go 1.21.6
 
 require (
-	github.com/gofiber/fiber/v3 v3.0.0-20240308190313-0379cc59aad0
-	github.com/imroc/req/v3 v3.43.0
+	github.com/gofiber/fiber/v3 v3.0.0-20240313181542-df1f877cc0be
+	github.com/imroc/req/v3 v3.43.1
 	github.com/joho/godotenv v1.5.1
 )
 
