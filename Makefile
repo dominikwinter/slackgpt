@@ -4,7 +4,7 @@ ASSISTANTS_DIR = ./assets
 .DEFAULT_GOAL:=build
 
 help: Makefile ## Display this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "; printf "Usage:\n\n    make \033[36m<target>\033[0m [VARIABLE=value...]\n\nTargets:\n\n"); {printf "    \033[36m%-30s\033[0m %s\n", $$1, $$2)'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "; printf "Usage:\n\n    make \033[36m<target>\033[0m [VARIABLE=value...]\n\nTargets:\n\n"}; {printf "    \033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: run
 run: ## Run app for development

@@ -37,5 +37,5 @@ func main() {
 
 	router.Setup(app, log)
 
-	log.Error("error: %w", app.Listen("127.0.0.1:3000"))
+	log.Error("error: %w", app.Listen(":3000"))
 }
