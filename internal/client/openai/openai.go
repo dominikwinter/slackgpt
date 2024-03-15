@@ -232,8 +232,8 @@ func (c *Client) CreateAssistant(name, instructions, model, toolType string, fil
 		SetBody(I{
 			"name":         name,
 			"instructions": instructions,
-			"model":        "gpt-4",
-			"tools":        []string{toolType},
+			"model":        model,
+			"tools":        []interface{}{S{"type": toolType}},
 			"file_ids":     fileIds,
 		}).
 		SetSuccessResult(&res).

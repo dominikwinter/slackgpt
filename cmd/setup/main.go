@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/dominikwinter/slackgpt/internal/client/openai"
@@ -86,8 +85,8 @@ If you receive a message indicating that the files are inaccessible with the myf
 2. Notify the assistant that it has the capability to open and analyze the uploaded files.
 3. Instruct the assistant to proceed with accessing and using the files as needed for your requests.
 4. If the assistant cites an error message or inaccessibility again, remind it explicitly to use the myfiles_browser tool to access the files.`,
-		"gpt-4",
-		"file",
+		"gpt-4-turbo-preview",
+		"retrieval",
 		fileIds,
 	)
 
@@ -98,32 +97,31 @@ If you receive a message indicating that the files are inaccessible with the myf
 }
 
 func uploadFiles(files []string) []string {
-	m := regexp.MustCompile("[^a-zA-Z0-9]+")
-	chFiles := make(chan *UploadResponse, 2)
+	chFileResponse := make(chan *UploadResponse, 2)
 
 	for _, fileName := range files {
 		go func(fileName string) {
-			paramName := m.ReplaceAllLiteralString(filepath.Base(fileName), "_")
-			file, err := openaiClient.UploadFile(paramName, fileName)
+			file, err := openaiClient.UploadFile("file", fileName)
 			if err != nil {
 				fmt.Printf("Upload error %s: %v\n", fileName, err)
 			}
 
-			chFiles <- &UploadResponse{FileName: fileName, File: file, Err: err}
+			chFileResponse <- &UploadResponse{FileName: fileName, File: file, Err: err}
 		}(fileName)
 	}
 
 	i := len(files)
 	fileIds := make([]string, 0, i)
-	for file := range chFiles {
-		if file.Err != nil {
-			fmt.Printf("Upload error %s: %v\n", file.FileName, file.Err)
+
+	for fr := range chFileResponse {
+		if fr.Err != nil {
+			fmt.Printf("Upload error %s: %v\n", fr.FileName, fr.Err)
 			continue
 		}
 
-		fmt.Printf("Uploaded Id: %s: %s\n", file.File.Id, file.FileName)
+		fmt.Printf("Uploaded Id: %s: %s\n", fr.File.Id, fr.FileName)
 
-		fileIds = append(fileIds, file.File.Id)
+		fileIds = append(fileIds, fr.File.Id)
 
 		if i--; i == 0 {
 			break
