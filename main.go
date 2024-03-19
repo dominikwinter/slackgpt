@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	_ "github.com/joho/godotenv/autoload"
 
-	"github.com/dominikwinter/slackgpt/internal/fiber/middleware/slacksignature"
 	"github.com/dominikwinter/slackgpt/internal/router"
 )
 
@@ -32,7 +31,6 @@ func main() {
 	})
 
 	app.Use(recover.New(recover.Config{EnableStackTrace: true}))
-	app.Use(slacksignature.New(os.Getenv("SLACK_SIGNING_SECRET")))
 	app.Use(logger.New())
 
 	router.Setup(app, log)

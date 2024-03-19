@@ -7,6 +7,7 @@ import (
 
 	"github.com/dominikwinter/slackgpt/internal/client/openai"
 	"github.com/dominikwinter/slackgpt/internal/client/slack"
+	"github.com/dominikwinter/slackgpt/pkg/fiber/middleware/slacksignature"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -135,49 +136,54 @@ func getOpenAiThreadIdFromSecondMessageFromThread(history *slack.History) string
 }
 
 func Setup(app *fiber.App, log *slog.Logger) {
-	app.Post("/api/v1/events", func(c fiber.Ctx) error {
-		c.Response().Header.SetContentType("plain/text; charset=utf-8")
+	app.Post(
+		"/api/v1/events",
+		slacksignature.New(slacksignature.Config{
+			Key: os.Getenv("SLACK_SIGNING_SECRET"),
+		}),
+		func(c fiber.Ctx) error {
+			c.Response().Header.SetContentType("plain/text; charset=utf-8")
 
-		var body SlackRequestBody
+			var body SlackRequestBody
 
-		if err := c.Bind().JSON(&body); err != nil {
-			return err
-		}
+			if err := c.Bind().JSON(&body); err != nil {
+				return err
+			}
 
-		log.Info("Incoming Request", "body", body)
+			log.Info("Incoming Request", "body", body)
 
-		// url body request, used only once on app configuration in slack
-		// https://api.slackClient.com/apps/xxxxxx/event-subscriptions
-		// https://api.slackClient.com/apis/connections/events-api#handshake
-		if body.Type == "url_verification" {
-			log.Info("Responding to url verification", "challenge", body.Challenge)
-			return c.SendString(body.Challenge)
-		}
+			// url body request, used only once on app configuration in slack
+			// https://api.slackClient.com/apps/xxxxxx/event-subscriptions
+			// https://api.slackClient.com/apis/connections/events-api#handshake
+			if body.Type == "url_verification" {
+				log.Info("Responding to url verification", "challenge", body.Challenge)
+				return c.SendString(body.Challenge)
+			}
 
-		if body.Type != "event_callback" ||
-			body.Event == nil ||
-			body.Event.Type != "message" ||
-			body.Event.BotId != "" ||
-			body.Event.UserProfile == nil {
+			if body.Type != "event_callback" ||
+				body.Event == nil ||
+				body.Event.Type != "message" ||
+				body.Event.BotId != "" ||
+				body.Event.UserProfile == nil {
+				return c.SendString("ok")
+			}
+
+			go func() {
+				var err error
+
+				if body.Event.ThreadTs == "" {
+					// direct message, not in thread, init chat
+					err = initChat(body.Event)
+				} else {
+					// if message is from user and we are in the thread .. so it's obviously the second message.
+					err = replyChat(body.Event)
+				}
+
+				if err != nil {
+					log.Error("Failed to process event", "error", err)
+				}
+			}()
+
 			return c.SendString("ok")
-		}
-
-		go func() {
-			var err error
-
-			if body.Event.ThreadTs == "" {
-				// direct message, not in thread, init chat
-				err = initChat(body.Event)
-			} else {
-				// if message is from user and we are in the thread .. so it's obviously the second message.
-				err = replyChat(body.Event)
-			}
-
-			if err != nil {
-				log.Error("Failed to process event", "error", err)
-			}
-		}()
-
-		return c.SendString("ok")
-	})
+		})
 }
