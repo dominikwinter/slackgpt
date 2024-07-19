@@ -78,7 +78,7 @@ func New(url, token, organization string) *Client {
 			SetBaseURL(url).
 			SetUserAgent("github.com/dominikwinter/slackgpt").
 			SetCommonHeader("OpenAI-Organization", organization).
-			SetCommonHeader("OpenAI-Beta", "assistants=v1").
+			SetCommonHeader("OpenAI-Beta", "assistants=v2").
 			SetCommonBearerAuthToken(token).
 			SetTimeout(20 * time.Second). // OpenAI API can be slow
 			SetCookieJar(nil).
@@ -167,7 +167,7 @@ func (c *Client) WaitForRunCompleted(threadId, runId string) (res *Run, err erro
 		Get("/v1/threads/{threadId}/runs/{runId}")
 
 	if res.Status != "completed" {
-		return nil, fmt.Errorf("failed to wait for run completed: %s", res.Status)
+		return nil, fmt.Errorf("failed to wait for run completed: %v", res)
 	}
 
 	return

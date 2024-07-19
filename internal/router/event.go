@@ -171,7 +171,7 @@ func Setup(app *fiber.App, log *slog.Logger) {
 			go func() {
 				var err error
 
-				if body.Event.ThreadTs == "" {
+				if len(body.Event.ThreadTs) == 0 {
 					// direct message, not in thread, init chat
 					err = initChat(body.Event)
 				} else {
