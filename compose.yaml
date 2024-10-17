@@ -1,12 +1,9 @@
-version: '3.7'
-
 services:
   home:
-    image: gcr.io/distroless/base-debian11
     container_name: slackgpt
+    build: .
     restart: always
     ports:
       - 11337:3000
     volumes:
       - ./.env:/.env:ro
-      - ./slackgpt-linux-amd64:/slackgpt-linux-amd64:ro

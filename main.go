@@ -35,5 +35,7 @@ func main() {
 
 	router.Setup(app, log)
 
-	log.Error("error: %w", app.Listen(":3000"))
+	if err := app.Listen(":" + os.Getenv("PORT")); err != nil {
+		log.Error("failed to start server", slog.Any("error", err))
+	}
 }
